@@ -16,7 +16,7 @@ type service struct {
 	edges []int
 }
 
-var srvTemplate, _ = template.New("").Parse(`
+var srvTemplate = template.Must(template.New("").Parse(`
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -36,6 +36,8 @@ spec:
     metadata:
       labels:
         app: {{.name}}
+      annotations:
+        kuma.io/mesh: {{.mesh}}
     spec:
       containers:
         - name: service
@@ -49,7 +51,7 @@ spec:
               value: "{{.uris}}"
           resources:
             limits:
-              memory: "32Mi"
+              memory: "64Mi"
               cpu: "100m"
 ---
 apiVersion: v1
@@ -68,9 +70,9 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 9090
-`)
+`)).Option("missingkey=error")
 
-var clientTemplate, _ = template.New("").Parse(`
+var clientTemplate = template.Must(template.New("").Parse(`
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -88,6 +90,8 @@ spec:
     metadata:
       labels:
         app: "fake-client" 
+      annotations:
+        kuma.io/mesh: {{.mesh}}
     spec:
       containers:
         - name: client
@@ -97,51 +101,13 @@ spec:
             limits:
               memory: "32Mi"
               cpu: "200m"
-`)
+`)).Option("missingkey=error")
 
-func toUri(idx int) string {
-	return fmt.Sprintf("http://%s_kuma-test_svc_80.mesh:80", toName(idx))
-}
-
-func toName(idx int) string {
-	return fmt.Sprintf("srv-%03d", idx)
-}
-
-func (s service) ToYaml(writer io.Writer, namespace string) error {
-	return srvTemplate.Execute(writer, map[string]string{
-		"name":      toName(s.idx),
-		"namespace": namespace,
-		"uris":      s.toUris(),
-	})
-}
-
-func (s service) toUris() string {
-	all := []string{}
-	for _, edge := range s.edges {
-		all = append(all, toUri(edge))
-	}
-	return strings.Join(all, ",")
-}
-
-type services []service
-
-func (s services) ToDot() string {
-	allEdges := []string{}
-	for _, srv := range s {
-		for _, other := range srv.edges {
-			allEdges = append(allEdges, fmt.Sprintf("%d -> %d;", srv.idx, other))
-		}
-	}
-	return fmt.Sprintf("digraph{\n%s\n}\n", strings.Join(allEdges, "\n"))
-}
-
-func (s services) ToYaml(writer io.Writer, conf serviceConf) error {
-	if conf.namespace != "" {
-		_, err := writer.Write([]byte(fmt.Sprintf(`
+var namespaceTemplate = template.Must(template.New("").Parse(`
 apiVersion: kuma.io/v1alpha1
 kind: Mesh
 metadata:
-  name: default
+  name: {{.mesh}}
 spec:
   metrics:
     backends:
@@ -162,16 +128,54 @@ spec:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: %s
+  name: {{.namespace}}
   annotations:
    kuma.io/sidecar-injection: enabled
-`, conf.namespace)))
-		if err != nil {
-			return err
+`)).Option("missingkey=error")
+
+func toUri(idx int, namespace string) string {
+	return fmt.Sprintf("http://%s_%s_svc_80.mesh:80", toName(idx), namespace)
+}
+
+func toName(idx int) string {
+	return fmt.Sprintf("srv-%03d", idx)
+}
+
+func (s service) ToYaml(writer io.Writer, namespace string, mesh string) error {
+	return srvTemplate.Execute(writer, map[string]string{
+		"name":      toName(s.idx),
+		"namespace": namespace,
+		"mesh":      mesh,
+		"uris":      s.toUris(namespace),
+	})
+}
+
+func (s service) toUris(namespace string) string {
+	all := []string{}
+	for _, edge := range s.edges {
+		all = append(all, toUri(edge, namespace))
+	}
+	return strings.Join(all, ",")
+}
+
+type services []service
+
+func (s services) ToDot() string {
+	allEdges := []string{}
+	for _, srv := range s {
+		for _, other := range srv.edges {
+			allEdges = append(allEdges, fmt.Sprintf("%d -> %d;", srv.idx, other))
 		}
 	}
+	return fmt.Sprintf("digraph{\n%s\n}\n", strings.Join(allEdges, "\n"))
+}
+
+func (s services) ToYaml(writer io.Writer, conf serviceConf) error {
+	if err := namespaceTemplate.Execute(writer, map[string]string{"namespace": conf.namespace, "mesh": conf.mesh}); err != nil {
+		return err
+	}
 	if conf.withGenerator {
-		if err := clientTemplate.Execute(writer, map[string]string{"namespace": conf.namespace, "uri": toUri(0)}); err != nil {
+		if err := clientTemplate.Execute(writer, map[string]string{"namespace": conf.namespace, "mesh": conf.mesh, "uri": toUri(0, conf.namespace)}); err != nil {
 			return err
 		}
 	}
@@ -179,7 +183,7 @@ metadata:
 		if _, err := writer.Write([]byte("---")); err != nil {
 			return err
 		}
-		if err := srv.ToYaml(writer, conf.namespace); err != nil {
+		if err := srv.ToYaml(writer, conf.namespace, conf.mesh); err != nil {
 			return err
 		}
 	}
@@ -190,6 +194,7 @@ type serviceConf struct {
 	withFailure   bool
 	withGenerator bool
 	namespace     string
+	mesh          string
 }
 
 func GenerateRandomServiceMesh(seed int64, numServices int, percentEdges int) services {
@@ -213,7 +218,8 @@ func GenerateRandomServiceMesh(seed int64, numServices int, percentEdges int) se
 func main() {
 	conf := serviceConf{}
 	flag.BoolVar(&conf.withGenerator, "withGenerator", false, "Whether we should start a job that generates synthetic load to the first service")
-	flag.StringVar(&conf.namespace, "namespace", "", "The name of the namespace to deploy to")
+	flag.StringVar(&conf.namespace, "namespace", "kuma-test", "The name of the namespace to deploy to")
+	flag.StringVar(&conf.mesh, "mesh", "default", "The name of the mesh to deploy to")
 	numServices := flag.Int("numServices", 20, "The number of services to use")
 	percentEdge := flag.Int("percentEdge", 50, "The for an edge between 2 nodes to exist (100 == sure)")
 	seed := flag.Int64("seed", time.Now().Unix(), "the seed for the random generate (set to now by default)")
@@ -221,5 +227,8 @@ func main() {
 
 	fmt.Printf("# Using seed: %d\n", *seed)
 	srvs := GenerateRandomServiceMesh(*seed, *numServices, *percentEdge)
-	srvs.ToYaml(os.Stdout, conf)
+	err := srvs.ToYaml(os.Stdout, conf)
+	if err != nil {
+		panic(err)
+	}
 }
