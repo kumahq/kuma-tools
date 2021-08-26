@@ -41,7 +41,7 @@ spec:
     spec:
       containers:
         - name: service
-          image: nicholasjackson/fake-service:v0.21.1
+          image: {{.image}}
           ports:
             - containerPort: 9090
           env:
@@ -141,12 +141,13 @@ func toName(idx int) string {
 	return fmt.Sprintf("srv-%03d", idx)
 }
 
-func (s service) ToYaml(writer io.Writer, namespace string, mesh string) error {
+func (s service) ToYaml(writer io.Writer, namespace string, mesh string, image string) error {
 	return srvTemplate.Execute(writer, map[string]string{
 		"name":      toName(s.idx),
 		"namespace": namespace,
 		"mesh":      mesh,
 		"uris":      s.toUris(namespace),
+		"image": image,
 	})
 }
 
@@ -183,7 +184,7 @@ func (s services) ToYaml(writer io.Writer, conf serviceConf) error {
 		if _, err := writer.Write([]byte("---")); err != nil {
 			return err
 		}
-		if err := srv.ToYaml(writer, conf.namespace, conf.mesh); err != nil {
+		if err := srv.ToYaml(writer, conf.namespace, conf.mesh, conf.image); err != nil {
 			return err
 		}
 	}
@@ -195,6 +196,7 @@ type serviceConf struct {
 	withGenerator bool
 	namespace     string
 	mesh          string
+	image         string
 }
 
 func GenerateRandomServiceMesh(seed int64, numServices int, percentEdges int) services {
@@ -220,6 +222,7 @@ func main() {
 	flag.BoolVar(&conf.withGenerator, "withGenerator", false, "Whether we should start a job that generates synthetic load to the first service")
 	flag.StringVar(&conf.namespace, "namespace", "kuma-test", "The name of the namespace to deploy to")
 	flag.StringVar(&conf.mesh, "mesh", "default", "The name of the mesh to deploy to")
+	flag.StringVar(&conf.image, "image", "nicholasjackson/fake-service:v0.21.1", "The fake-service image")
 	numServices := flag.Int("numServices", 20, "The number of services to use")
 	percentEdge := flag.Int("percentEdge", 50, "The for an edge between 2 nodes to exist (100 == sure)")
 	seed := flag.Int64("seed", time.Now().Unix(), "the seed for the random generate (set to now by default)")
