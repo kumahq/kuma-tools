@@ -23,4 +23,4 @@ else
   cp ${DP_FILE} /tmp/dp.yaml
 fi
 cat /tmp/dp.yaml
-sudo -u kuma-dp /usr/bin/kuma-dp run --cp-address=https://${CP_HOSTNAME}:5678 --log-level=debug --dataplane-var=ADDRESS=${ADDRESS} --dataplane-var=DP_NAME="${SERVICE_NAME}-${HOSTNAME}" --dataplane-file=/tmp/dp.yaml
+sudo -u kuma-dp /usr/bin/kuma-dp run --cp-address=https://${CP_HOSTNAME}:5678 --log-level=debug --dataplane-var=ADDRESS=${ADDRESS} --dataplane-var=DP_NAME="${SERVICE_NAME}-${HOSTNAME}" --dataplane-file=/tmp/dp.yaml --dns-coredns-config-template-path=${COREDNS_CONF}

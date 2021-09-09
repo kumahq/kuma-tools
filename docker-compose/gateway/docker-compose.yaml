@@ -67,6 +67,8 @@ services:
       - "KONG_PROXY_ERROR_LOG=/dev/stderr"
       - "KONG_ADMIN_ERROR_LOG=/dev/stderr"
       - "KONG_ADMIN_LISTEN=0.0.0.0:8001"
+      - "KONG_DNS_ORDER=CNAME,SRV,A"
+      - KONG_DNS_ERROR_TTL=10000
     command:
       - "/bin/bash"
       - "-c"
@@ -87,11 +89,14 @@ services:
       - "CP_HOSTNAME=kuma-control-plane"
       - "DP_FILE=/dp.yaml"
       - "SERVICE_NAME=gateway"
+      # remove this line to see resolution fail
+      - "COREDNS_CONF=/coredns.conf"
     command:
       - /setup-transparent.sh
     volumes:
       - ../setup-transparent.sh:/setup-transparent.sh
       - ./gateway-dp.yaml:/dp.yaml
+      - ./coredns.conf:/coredns.conf
     ports:
       - '8000:8000'
       - '8443:8443'
