@@ -1,0 +1,64 @@
+version: '3'
+services:
+  transparent-1:
+    image: moltch/fake-service:latest
+    environment:
+      - SERVICE=transparent-1
+    depends_on:
+      - transparent-1-dpp
+    network_mode: "service:transparent-1-dpp"
+  transparent-1-dpp:
+    build:
+      context: .
+      dockerfile: ../dpp.Dockerfile
+    cap_add:
+      - NET_ADMIN
+      - CAP_SYS_ADMIN
+    entrypoint: "/bin/sh"
+    user: "root"
+    environment:
+      - "CP_HOSTNAME=kuma-control-plane"
+      - "SERVICE_NAME=transparent-1"
+      - "SERVICE_PORT=9090"
+      - "PORT=9000"
+    command:
+      - /setup-transparent.sh
+    volumes:
+      - ../setup-transparent.sh:/setup-transparent.sh
+    networks:
+      kuma-play: {}
+  transparent-2:
+    image: moltch/fake-service:latest
+    environment:
+      - SERVICE=transparent-2
+      - UPSTREAM_URIS=http://transparent-1.mesh
+    depends_on:
+      - transparent-2-dpp
+    network_mode: "service:transparent-2-dpp"
+  transparent-2-dpp:
+    build:
+      context: .
+      dockerfile: ../dpp.Dockerfile
+    cap_add:
+      - NET_ADMIN
+      - CAP_SYS_ADMIN
+    entrypoint: "/bin/sh"
+    user: "root"
+    environment:
+      - "CP_HOSTNAME=kuma-control-plane"
+      - "SERVICE_NAME=transparent-2"
+      - "SERVICE_PORT=9090"
+      - "PORT=9000"
+    command:
+      - /setup-transparent.sh
+    volumes:
+      - ../setup-transparent.sh:/setup-transparent.sh
+    ports:
+      - 9000:9000
+    networks:
+      kuma-play: {}
+
+networks:
+  kuma-play:
+    external:
+      name: core_kuma-play

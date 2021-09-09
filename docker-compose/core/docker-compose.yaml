@@ -1,0 +1,35 @@
+version: '3'
+services:
+  kuma-control-plane:
+    image: kumahq/kuma-cp:1.2.3
+    environment:
+      - KUMA_MODE=standalone
+      # To keep things simple we disable token based auth
+      - KUMA_DP_SERVER_AUTH_TYPE=none
+      - KUMA_GENERAL_TLS_KEY_FILE=/key.pem
+      - KUMA_GENERAL_TLS_CERT_FILE=/cert.pem
+    working_dir: /
+    command:
+      - "run"
+    volumes:
+      - ./cert.pem:/cert.pem
+      - ./key.pem:/key.pem
+    expose:
+      - "5678"
+      - "5680"
+      - "5681"
+      - "5682"
+      - "5653"
+    ports:
+      - "5681:5681"
+      - "5653:5653"
+    networks:
+      kuma-play:
+        ipv4_address: 172.24.0.2
+
+networks:
+  kuma-play:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16

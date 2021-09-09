@@ -1,0 +1,28 @@
+version: '3'
+services:
+  not-transparent:
+    image: moltch/fake-service:latest
+    environment:
+      - SERVICE=not-transparent
+    depends_on:
+      - not-transparent-dpp
+    network_mode: "service:not-transparent-dpp"
+  not-transparent-dpp:
+    image: kumahq/kuma-dp:1.2.3
+    entrypoint: "/bin/sh"
+    command:
+      - "-c"
+      - "kuma-dp run --cp-address=https://kuma-control-plane:5678 --log-level=info --dataplane-file=/dp.yaml --dataplane-var=SERVICE_NAME=not-transparent --dataplane-var=PORT=9090 --dataplane-var=OUTSIDE_PORT=9000 --dataplane-var=ADDRESS=`ip route list | tail -1 | awk '{ print $$7 }'`"
+    expose:
+      - "9000"
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./not-transparent-dp.yaml:/dp.yaml
+    networks:
+      kuma-play: {}
+
+networks:
+  kuma-play:
+    external:
+      name: core_kuma-play
