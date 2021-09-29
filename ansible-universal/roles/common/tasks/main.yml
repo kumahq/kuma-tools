@@ -1,0 +1,55 @@
+---
+
+- name: Add kuma role group
+  ansible.builtin.group:
+    name: kuma
+
+- name: Add kuma role user
+  ansible.builtin.user:
+    name: kuma
+    comment: kuma role user
+    create_home: no
+    group: kuma
+    password: "*"
+
+- name: Create installation directory
+  ansible.builtin.file:
+    path: "{{ prefix }}/bin"
+    state: directory
+    mode: "0755"
+
+- name: Copy kumactl
+  ansible.builtin.copy:
+    src: "{{ builddir }}/artifacts-linux-amd64/kumactl/kumactl"
+    dest: "{{ prefix }}/bin/kumactl"
+    mode: "0755"
+
+- name: Copy kuma-cp
+  ansible.builtin.copy:
+    src: "{{ builddir }}/artifacts-linux-amd64/kuma-cp/kuma-cp"
+    dest: "{{ prefix }}/bin/kuma-cp"
+    mode: "0755"
+
+- name: Copy kuma-dp
+  ansible.builtin.copy:
+    src: "{{ builddir }}/artifacts-linux-amd64/kuma-dp/kuma-dp"
+    dest: "{{ prefix }}/bin/kuma-dp"
+    mode: "0755"
+
+- name: Copy coredns
+  ansible.builtin.copy:
+    src: "{{ builddir }}/artifacts-linux-amd64/coredns/coredns"
+    dest: "{{ prefix }}/bin/coredns"
+    mode: "0755"
+
+- name: Copy test-server
+  ansible.builtin.copy:
+    src: "{{ builddir }}/artifacts-linux-amd64/test-server/test-server"
+    dest: "{{ prefix }}/bin/test-server"
+    mode: "0755"
+
+- name: Copy kuma-prometheus-sd
+  ansible.builtin.copy:
+    src: "{{ builddir }}/artifacts-linux-amd64/kuma-prometheus-sd/kuma-prometheus-sd"
+    dest: "{{ prefix }}/bin/kuma-prometheus-sd"
+    mode: "0755"
