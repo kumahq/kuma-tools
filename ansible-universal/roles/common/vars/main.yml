@@ -1,0 +1,4 @@
+---
+
+builddir: /home/jpeach/upstream/konghq/kuma/build
+prefix: /opt/kuma

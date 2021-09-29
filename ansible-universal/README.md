@@ -17,5 +17,5 @@ expected tool.
 
 | Playbook | Purpose |
 | --- | --- | 
-| [Install Binaries](roles/common/tasks/install-binaries.yml) | Copy binaries to all hosts from a local Kuma build. |
+| [Install Binaries](roles/common/tasks/main.yml) | Copy binaries to all hosts from a local Kuma build. |
 
