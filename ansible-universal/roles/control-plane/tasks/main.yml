@@ -1,0 +1,42 @@
+---
+
+- name: Create persistent state directory
+  ansible.builtin.file:
+    path: "{{ kuma_statedir }}"
+    state: directory
+    owner: kuma
+    group: kuma
+    mode: "0700"
+
+- name: Create configuration directory
+  ansible.builtin.file:
+    path: "{{ kuma_confdir }}"
+    state: directory
+    mode: "0755"
+
+- name: Install kuma config file
+  ansible.builtin.template:
+    src: kuma.conf
+    dest: "{{ kuma_confdir }}/kuma.conf"
+
+- name: Create sysconfig directory
+  ansible.builtin.file:
+    path: /etc/sysconfig
+    state: directory
+    mode: "0755"
+
+- name: Install kuma-cp sysconfig
+  ansible.builtin.template:
+    src: kuma-cp.sysconfig
+    dest: /etc/sysconfig/kuma-cp
+
+- name: Install kuma-cp service
+  ansible.builtin.template:
+    src: kuma-cp.service
+    dest: /etc/systemd/system/kuma-cp.service
+
+- name: Start kuma-cp service
+  ansible.builtin.systemd:
+    name: kuma-cp
+    state: started
+    daemon_reload: yes

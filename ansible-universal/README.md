@@ -13,9 +13,10 @@ already be available. Running the Ansible tools in [`./bin`](./bin)
 will automatically install Ansible into a virtualenv and execute the
 expected tool.
 
-## Playbooks
+## Roles
 
-| Playbook | Purpose |
-| --- | --- | 
-| [Install Binaries](roles/common/tasks/main.yml) | Copy binaries to all hosts from a local Kuma build. |
+| Role | Hostgroup | Purpose |
+| --- | --- | --- |
+| [common](roles/common) | `all` | Copy binaries to all hosts and set up common resources. |
+| [control-plane](roles/control-plane) | `controlplane` | Configure and operate a `kuma-cp` service. |
 

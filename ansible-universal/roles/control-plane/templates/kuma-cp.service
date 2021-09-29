@@ -1,0 +1,24 @@
+# {{ ansible_managed }}.
+
+[Unit]
+Description=Kuma Control Plane in Universal mode
+After=network.target
+Documentation=https://kuma.io
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/kuma-cp
+
+ExecStart={{ kuma_bindir }}/kuma-cp run --config-file {{ kuma_confdir }}/kuma.conf
+
+Restart=always
+RestartSec=1s
+
+StartLimitIntervalSec=0
+StartLimitBurst=0
+
+User=kuma
+
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
