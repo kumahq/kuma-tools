@@ -4,3 +4,8 @@
   roles:
   - role: common
     become: yes
+
+- hosts: controlplane
+  roles:
+  - role: control-plane
+    become: yes

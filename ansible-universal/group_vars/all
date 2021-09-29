@@ -1,0 +1,5 @@
+---
+
+kuma_bindir: /opt/kuma/bin
+kuma_statedir: /var/lib/kuma
+kuma_confdir: /etc/kuma
