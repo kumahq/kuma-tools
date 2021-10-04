@@ -1,0 +1,13 @@
+---
+
+- name: restart echo-server service
+  listen: restart kuma services
+  ansible.builtin.systemd:
+    name: echo-server
+    state: restarted
+
+- name: reload echo-server service
+  ansible.builtin.systemd:
+    name: echo-server
+    state: restarted
+    daemon_reload: yes

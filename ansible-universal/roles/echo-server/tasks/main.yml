@@ -1,0 +1,20 @@
+---
+
+- name: Create sysconfig directory
+  ansible.builtin.file:
+    path: /etc/sysconfig
+    state: directory
+    mode: "0755"
+
+- name: Install echo-server sysconfig
+  notify: restart echo-server service
+  ansible.builtin.template:
+    src: echo-server.sysconfig
+    dest: /etc/sysconfig/echo-server
+
+- name: Install echo-server service
+  notify: reload echo-server service
+  ansible.builtin.template:
+    src: echo-server.service
+    dest: /etc/systemd/system/echo-server.service
+
