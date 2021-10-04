@@ -1,0 +1,11 @@
+---
+
+# When the Kuma binaries are updated in this role, they notify on this
+# listener name.  However, Ansible will raise an error if there is no
+# handler for a notification, so we need to install a no-op handler in
+# case there is no other matching handler in this play.
+- listen: restart kuma services
+  ansible.builtin.debug:
+    msg: notified kuma service restart
+    verbosity: 2
+
