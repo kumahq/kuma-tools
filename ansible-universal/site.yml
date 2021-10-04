@@ -1,11 +1,8 @@
 ---
 
-- hosts: all
-  roles:
-  - role: common
-    become: yes
-
 - hosts: controlplane
   roles:
+  - role: install-kuma
+    become: yes
   - role: control-plane
     become: yes

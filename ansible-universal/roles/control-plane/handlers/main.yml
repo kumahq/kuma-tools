@@ -1,0 +1,13 @@
+---
+
+- name: restart kuma-cp service
+  listen: restart kuma services
+  ansible.builtin.systemd:
+    name: kuma-cp
+    state: restarted
+
+- name: reload kuma-cp service
+  ansible.builtin.systemd:
+    name: kuma-cp
+    state: restarted
+    daemon_reload: yes

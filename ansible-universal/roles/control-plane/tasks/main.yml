@@ -26,17 +26,13 @@
     mode: "0755"
 
 - name: Install kuma-cp sysconfig
+  notify: restart kuma-cp service
   ansible.builtin.template:
     src: kuma-cp.sysconfig
     dest: /etc/sysconfig/kuma-cp
 
 - name: Install kuma-cp service
+  notify: reload kuma-cp service
   ansible.builtin.template:
     src: kuma-cp.service
     dest: /etc/systemd/system/kuma-cp.service
-
-- name: Start kuma-cp service
-  ansible.builtin.systemd:
-    name: kuma-cp
-    state: started
-    daemon_reload: yes
