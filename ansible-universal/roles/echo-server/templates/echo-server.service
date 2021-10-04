@@ -1,0 +1,19 @@
+# {{ ansible_managed }}.
+
+[Unit]
+Description=Kuma Echo Server in Universal mode
+After=network.target
+Documentation=https://kuma.io
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/echo-server
+
+ExecStart={{ kuma_bindir }}/test-server echo --instance {{ ansible_facts['nodename'] }} --port {{ listen_port }}
+
+Restart=always
+RestartSec=1s
+
+User=kuma
+
+[Install]
+WantedBy=multi-user.target

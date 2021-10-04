@@ -6,3 +6,10 @@
     become: yes
   - role: control-plane
     become: yes
+
+- hosts: echoserver
+  roles:
+  - role: install-kuma
+    become: yes
+  - role: echo-server
+    become: yes
