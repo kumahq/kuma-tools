@@ -1,0 +1,62 @@
+---
+
+- name: Install podman
+  ansible.builtin.package:
+    name: podman
+    state: present
+
+- name: Install envoy wrapper
+  ansible.builtin.template:
+    src: envoy
+    dest: "{{ kuma_bindir }}/envoy"
+    mode: "0755"
+
+- name: Create persistent state directory
+  ansible.builtin.file:
+    path: "{{ kuma_statedir }}"
+    state: directory
+    owner: kuma
+    group: kuma
+    mode: "0700"
+
+- name: Add kumactl control plane
+  become: yes
+  become_user: kuma
+  ansible.builtin.command:
+    cmd: "{{ kuma_bindir }}/kumactl config control-planes add --overwrite --name kuma --address http://control-plane:5681"
+
+- name: Set current kumactcl control plane
+  become: yes
+  become_user: kuma
+  ansible.builtin.command:
+    cmd: "{{ kuma_bindir }}/kumactl config control-planes switch --name kuma"
+
+- name: Create dataplanes directory
+  ansible.builtin.file:
+    path: "{{ kuma_confdir }}/dataplanes"
+    state: directory
+    mode: "0755"
+
+- name: Create sysconfig directory
+  ansible.builtin.file:
+    path: /etc/sysconfig
+    state: directory
+    mode: "0755"
+
+- name: Install kuma-dp sysconfig
+  notify: restart kuma-dp service
+  ansible.builtin.template:
+    src: kuma-dp.sysconfig
+    dest: /etc/sysconfig/kuma-dp
+
+- name: Install dataplane sysconfig
+  notify: restart kuma-dp service
+  ansible.builtin.template:
+    src: dataplane.conf
+    dest: "{{ kuma_confdir }}/dataplanes/{{ service_name }}.conf"
+
+- name: Install kuma-dp service
+  notify: reload kuma-dp service
+  ansible.builtin.template:
+    src: kuma-dp.service
+    dest: /etc/systemd/system/kuma-dp.service
