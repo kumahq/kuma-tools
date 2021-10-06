@@ -1,0 +1,11 @@
+#! /usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+readonly DOCKER=${DOCKER:-podman}
+readonly ENVOY=${ENVOY:-docker.io/envoyproxy/envoy-distroless:v1.19.1}
+
+exec $DOCKER run --network host $ENVOY "$@"
+

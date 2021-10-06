@@ -1,0 +1,38 @@
+# {{ ansible_managed }}.
+
+[Unit]
+Description=Kuma Data Plane in Universal mode
+After=network.target
+Documentation=https://kuma.io
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/kuma-cp
+
+ExecStartPre={{ kuma_bindir }}/kumactl generate dataplane-token \
+    --proxy-type dataplane \
+    --name "{{ ansible_facts['nodename'] | replace('.', '-') }}" \
+    > "{{ kuma_statedir }}/{{ ansible_facts['nodename'] | replace('.', '-') }}".dp
+
+ExecStart={{ kuma_bindir }}/kuma-dp run \
+    --proxy-type dataplane \
+    --cp-address https://control-plane:5678 \
+    --dataplane-token-file "{{ kuma_statedir }}/{{ ansible_facts['nodename'] | replace('.', '-') }}".dp \
+    --dataplane-file "{{ kuma_confdir }}/dataplanes/{{ service_name }}.conf" \
+    --config-dir "{{ kuma_statedir }}/kuma-dp/{{ service_name }}" \
+    --dns-server-config-dir "{{ kuma_statedir }}/kuma-dp/{{ service_name }}" \
+    --dns-coredns-path "{{ kuma_bindir }}/coredns" \
+    --binary-path "{{ kuma_bindir }}/envoy"
+
+Restart=always
+RestartSec=1s
+
+StartLimitIntervalSec=0
+StartLimitBurst=0
+
+User=kuma
+
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,10 @@
+---
+
+- name: Add IPv4 address for control-plane hosts
+  lineinfile:
+    dest: /etc/hosts
+    regexp: '.*{{ item }}$'
+    line: "{{ hostvars[item].ansible_facts.eth0.ipv4.address }} control-plane # inventory host '{{ item }}'"
+    state: present
+  when: hostvars[item].ansible_facts.eth0.ipv4.address is defined
+  with_items: "{{ groups.controlplane }}"

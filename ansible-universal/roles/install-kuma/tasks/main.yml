@@ -8,7 +8,7 @@
   ansible.builtin.user:
     name: kuma
     comment: kuma role user
-    create_home: no
+    create_home: yes # Some tools (e.g. podman) require a home directory.
     group: kuma
     password: "*"
 
