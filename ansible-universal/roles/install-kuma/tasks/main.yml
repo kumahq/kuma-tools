@@ -65,3 +65,8 @@
     mode: "0755"
   notify:
   - restart kuma services
+
+- name: Add Kuma to user $PATH
+  ansible.builtin.template:
+    src: kuma.profile
+    dest: /etc/profile.d/kuma.sh
