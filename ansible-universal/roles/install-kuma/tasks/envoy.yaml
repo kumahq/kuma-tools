@@ -10,3 +10,7 @@
     src: envoy.sh
     dest: "{{ kuma_bindir }}/envoy"
     mode: "0755"
+
+- name: Pull envoy images
+  ansible.builtin.command:
+    cmd: "{{ kuma_bindir }}/envoy --version"

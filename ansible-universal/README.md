@@ -15,8 +15,45 @@ expected tool.
 
 ## Roles
 
-| Role | Hostgroup | Purpose |
-| --- | --- | --- |
-| [common](roles/common) | `all` | Copy binaries to all hosts and set up common resources. |
-| [control-plane](roles/control-plane) | `controlplane` | Configure and operate a `kuma-cp` service. |
+### Install Kuma ([Source](./roles/install-kuma))
 
+* copies a Kuma build from the local system to the remote host
+* installs Kuma binaries are installed in `/opt/kuma`
+* adds the Kuma installation directory all local user logins PATH
+* creates a `kuma` role account
+
+Note that this role also installs Envoy.
+
+### Control Plane ([Source](./roles/control-plane))
+
+* Runs a `kuma-cp` system service
+* Manages the `kuma-cp` configuration file at `/etc/kuma/kuma.conf`
+
+This role runs a simple `kuma-cp` control plane with no persistent backing
+store. This has two implications:
+
+* any DP tokens are lost on restart
+* all non-builtin resources are lost on restart
+
+Losing all the DP tokens means having to restart all the DPs on every
+`kuma-cp` restart, which is awkward. Since this is a development
+environment, we just turn off DP authorization (this could also
+be solved by [#2955](https://github.com/kumahq/kuma/issues/2955)).
+
+In general, there should only be 1 host with the `control-plane` role.
+
+### Data Plane ([Source](./roles/data-plane))
+
+This role is a mixin that manages a `kuma-dp` instance to expose
+a service.  The "data-plane" role should be included in the relevant
+service role, and the following variables need to be set:
+
+* _service_name_: name of the service to expose
+* _service_port_: TCP port on which to expose the service
+* _workload_port_: TCP port that the service is listening on
+
+### Echo Server ([Source](./roles/echo-server))
+
+This role manages a Kuma
+[echo server](https://github.com/kumahq/kuma/tree/master/test/server)
+and exposes it to the mesh as `kuma.io/service=echo-server`.

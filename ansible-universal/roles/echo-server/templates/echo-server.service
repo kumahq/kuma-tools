@@ -6,7 +6,7 @@ After=network.target
 Documentation=https://kuma.io
 
 [Service]
-EnvironmentFile=-/etc/sysconfig/echo-server
+EnvironmentFile=-/etc/sysconfig/echo-server.conf
 
 ExecStart={{ kuma_bindir }}/test-server echo --instance {{ ansible_facts['nodename'] }} --port {{ listen_port }}
 

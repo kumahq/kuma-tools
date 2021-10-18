@@ -1,25 +1,25 @@
 # {{ ansible_managed }}.
 
 [Unit]
-Description=Kuma Data Plane in Universal mode
+Description=Kuma Dataplane for {{ service_name }}
 After=network.target
+Requires={{ service_name }}
 Documentation=https://kuma.io
 
 [Service]
-EnvironmentFile=-/etc/sysconfig/kuma-cp
+EnvironmentFile=-/etc/sysconfig/{{ service_name }}-dataplane.conf
 
-ExecStartPre={{ kuma_bindir }}/kumactl generate dataplane-token \
-    --proxy-type dataplane \
-    --name "{{ ansible_facts['nodename'] | replace('.', '-') }}" \
-    > "{{ kuma_statedir }}/{{ ansible_facts['nodename'] | replace('.', '-') }}".dp
+# Force an image pull before kuma-dp tries to run it.
+ExecStartPre={{ kuma_bindir}}/envoy --version
+
+# Note that we assume no dataplane authorization.
 
 ExecStart={{ kuma_bindir }}/kuma-dp run \
     --proxy-type dataplane \
     --cp-address https://control-plane:5678 \
-    --dataplane-token-file "{{ kuma_statedir }}/{{ ansible_facts['nodename'] | replace('.', '-') }}".dp \
     --dataplane-file "{{ kuma_confdir }}/dataplanes/{{ service_name }}.conf" \
-    --config-dir "{{ kuma_statedir }}/kuma-dp/{{ service_name }}" \
-    --dns-server-config-dir "{{ kuma_statedir }}/kuma-dp/{{ service_name }}" \
+    --config-dir "{{ kuma_statedir }}/{{ service_name }}" \
+    --dns-server-config-dir "{{ kuma_statedir }}/{{ service_name }}" \
     --dns-coredns-path "{{ kuma_bindir }}/coredns" \
     --binary-path "{{ kuma_bindir }}/envoy"
 
@@ -32,6 +32,10 @@ StartLimitBurst=0
 User=kuma
 
 LimitNOFILE=1048576
+
+# Propagate the capability to bind to ports < 1024.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target

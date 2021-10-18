@@ -10,4 +10,5 @@
   ansible.builtin.systemd:
     name: echo-server
     state: restarted
+    enabled: true
     daemon_reload: yes

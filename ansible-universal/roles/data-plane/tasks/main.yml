@@ -33,19 +33,19 @@
     mode: "0755"
 
 - name: Install kuma-dp sysconfig
-  notify: restart kuma-dp service
+  notify: restart {{ service_name }} dataplane
   ansible.builtin.template:
     src: kuma-dp.sysconfig
-    dest: /etc/sysconfig/kuma-dp
+    dest: /etc/sysconfig/{{ service_name }}-dataplane.conf
 
 - name: Install dataplane sysconfig
-  notify: restart kuma-dp service
+  notify: restart {{ service_name }} dataplane
   ansible.builtin.template:
     src: dataplane.conf
     dest: "{{ kuma_confdir }}/dataplanes/{{ service_name }}.conf"
 
-- name: Install kuma-dp service
-  notify: reload kuma-dp service
+- name: Install dataplane service for {{ service_name }}
+  notify: reload {{ service_name}} dataplane
   ansible.builtin.template:
     src: kuma-dp.service
-    dest: /etc/systemd/system/kuma-dp.service
+    dest: /etc/systemd/system/{{ service_name }}-dataplane.service

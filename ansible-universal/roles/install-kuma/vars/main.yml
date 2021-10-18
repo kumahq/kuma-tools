@@ -3,5 +3,5 @@
 builddir: /home/jpeach/upstream/konghq/kuma/build
 
 envoy:
-  repository: docker.io/envoyproxy/envoy-distroless
-  version: v1.20.0
+  repository: docker.io/envoyproxy/envoy
+  version: v1.18.4

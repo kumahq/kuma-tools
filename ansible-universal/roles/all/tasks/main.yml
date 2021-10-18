@@ -1,5 +1,15 @@
 ---
 
+# Ensure that all hosts are updated.
+- name: Upgrade all packages
+  dnf:
+    name: "*"
+    state: latest
+  when: ansible_os_family == "RedHat"
+
+# Configure the local hostname `control-plane` for all hosts in the control
+# plane group. This makes it easier for any other Kuma tooling to reach the
+# Kuma API server.
 - name: Add IPv4 address for control-plane hosts
   lineinfile:
     dest: /etc/hosts
