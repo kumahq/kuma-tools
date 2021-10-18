@@ -10,11 +10,19 @@
   notify: restart echo-server service
   ansible.builtin.template:
     src: echo-server.sysconfig
-    dest: /etc/sysconfig/echo-server
+    dest: /etc/sysconfig/echo-server.conf
 
 - name: Install echo-server service
   notify: reload echo-server service
   ansible.builtin.template:
     src: echo-server.service
     dest: /etc/systemd/system/echo-server.service
+
+- name: Install echo-server dataplane
+  ansible.builtin.include_role:
+    name: data-plane
+  vars:
+    service_name: echo-server
+    service_port: "{{ 20000 + listen_port }}"
+    workload_port: "{{ listen_port }}"
 

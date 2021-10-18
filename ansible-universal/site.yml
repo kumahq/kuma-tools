@@ -4,6 +4,8 @@
   roles:
   - role: all
     become: yes
+  - role: install-kuma
+    become: yes
 
 - hosts: controlplane
   roles:
@@ -19,8 +21,3 @@
   - role: echo-server
     become: yes
     listen_port: 8080
-  - role: data-plane
-    become: yes
-    service_name: echo
-    service_port: 20000
-    workload_port: 8080

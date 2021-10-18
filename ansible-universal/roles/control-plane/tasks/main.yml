@@ -14,6 +14,20 @@
     state: directory
     mode: "0755"
 
+- name: Generate Kuma control plane certificate
+  become: yes
+  become_user: kuma
+  ansible.builtin.command:
+    creates: "{{ kuma_statedir }}/control-plane-cert.pem"
+    argv:
+    - "{{ kuma_bindir }}/kumactl"
+    - generate
+    - tls-certificate
+    - "--type=server"
+    - "--cp-hostname=control-plane"
+    - "--key-file={{ kuma_statedir }}/control-plane-key.pem"
+    - "--cert-file={{ kuma_statedir }}/control-plane-cert.pem"
+
 - name: Install kuma config file
   ansible.builtin.template:
     src: kuma.conf
