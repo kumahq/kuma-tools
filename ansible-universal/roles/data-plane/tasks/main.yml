@@ -1,16 +1,5 @@
 ---
 
-- name: Install podman
-  ansible.builtin.package:
-    name: podman
-    state: present
-
-- name: Install envoy wrapper
-  ansible.builtin.template:
-    src: envoy
-    dest: "{{ kuma_bindir }}/envoy"
-    mode: "0755"
-
 - name: Create persistent state directory
   ansible.builtin.file:
     path: "{{ kuma_statedir }}"

@@ -5,7 +5,7 @@ set -o pipefail
 set -o nounset
 
 readonly DOCKER=${DOCKER:-podman}
-readonly ENVOY=${ENVOY:-docker.io/envoyproxy/envoy-distroless:v1.19.1}
+readonly ENVOY=${ENVOY:-{{envoy.repository}}:{{envoy.version}}}
 
 exec $DOCKER run --network host $ENVOY "$@"
 

@@ -12,79 +12,11 @@
     group: kuma
     password: "*"
 
-- name: Create installation directory
-  ansible.builtin.file:
-    path: "{{ kuma_bindir }}"
-    state: directory
-    mode: "0755"
+- name: Install Kuma binaries
+  import_tasks: kuma-binaries.yaml
 
-- name: Copy kumactl
-  ansible.builtin.copy:
-    src: "{{ builddir }}/artifacts-linux-amd64/kumactl/kumactl"
-    dest: "{{ kuma_bindir }}/kumactl"
-    mode: "0755"
-  notify:
-  - restart kuma services
+- name: Configure kumactl
+  import_tasks: kuma-binaries.yaml
 
-- name: Copy kuma-cp
-  ansible.builtin.copy:
-    src: "{{ builddir }}/artifacts-linux-amd64/kuma-cp/kuma-cp"
-    dest: "{{ kuma_bindir }}/kuma-cp"
-    mode: "0755"
-  notify:
-  - restart kuma services
-
-- name: Copy kuma-dp
-  ansible.builtin.copy:
-    src: "{{ builddir }}/artifacts-linux-amd64/kuma-dp/kuma-dp"
-    dest: "{{ kuma_bindir }}/kuma-dp"
-    mode: "0755"
-  notify:
-  - restart kuma services
-
-- name: Copy coredns
-  ansible.builtin.copy:
-    src: "{{ builddir }}/artifacts-linux-amd64/coredns/coredns"
-    dest: "{{ kuma_bindir }}/coredns"
-    mode: "0755"
-  notify:
-  - restart kuma services
-
-- name: Copy test-server
-  ansible.builtin.copy:
-    src: "{{ builddir }}/artifacts-linux-amd64/test-server/test-server"
-    dest: "{{ kuma_bindir }}/test-server"
-    mode: "0755"
-  notify:
-  - restart kuma services
-
-- name: Copy kuma-prometheus-sd
-  ansible.builtin.copy:
-    src: "{{ builddir }}/artifacts-linux-amd64/kuma-prometheus-sd/kuma-prometheus-sd"
-    dest: "{{ kuma_bindir }}/kuma-prometheus-sd"
-    mode: "0755"
-  notify:
-  - restart kuma services
-
-- name: Add Kuma to user $PATH
-  ansible.builtin.template:
-    src: kuma.profile
-    dest: /etc/profile.d/kuma.sh
-
-- name: Generate Kumactl bash completion
-  register: kumactl_completion_bash
-  ansible.builtin.command:
-    argv:
-    - "{{ kuma_bindir }}/kumactl"
-    - completion
-    - bash
-
-- name: Install Kumactl bash completion
-  ansible.builtin.copy:
-    content: "{{ kumactl_completion_bash.stdout }}"
-    dest: /etc/bash_completion.d/kumactl.sh
-
-- name: Install bash-completion package
-  ansible.builtin.package:
-    name: bash-completion
-    state: present
+- name: Install Envoy binaries
+  import_tasks: envoy.yaml
