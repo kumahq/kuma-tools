@@ -1,0 +1,12 @@
+---
+
+- name: Install podman
+  ansible.builtin.package:
+    name: podman
+    state: present
+
+- name: Install envoy wrapper
+  ansible.builtin.template:
+    src: envoy.sh
+    dest: "{{ kuma_bindir }}/envoy"
+    mode: "0755"

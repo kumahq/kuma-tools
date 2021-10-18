@@ -1,0 +1,24 @@
+--- 
+
+- name: Add Kuma to user $PATH
+  ansible.builtin.template:
+    src: kuma.profile
+    dest: /etc/profile.d/kuma.sh
+
+- name: Generate Kumactl bash completion
+  register: kumactl_completion_bash
+  ansible.builtin.command:
+    argv:
+    - "{{ kuma_bindir }}/kumactl"
+    - completion
+    - bash
+
+- name: Install Kumactl bash completion
+  ansible.builtin.copy:
+    content: "{{ kumactl_completion_bash.stdout }}"
+    dest: /etc/bash_completion.d/kumactl.sh
+
+- name: Install bash-completion package
+  ansible.builtin.package:
+    name: bash-completion
+    state: present
