@@ -1,0 +1,15 @@
+---
+
+- name: restart {{ service_name}} gateway
+  listen: restart kuma services
+  ansible.builtin.systemd:
+    name: "{{ service_name }}-dataplane"
+    state: restarted
+
+- name: reload {{ service_name}} gateway
+  ansible.builtin.systemd:
+    name: "{{ service_name }}-dataplane"
+    state: restarted
+    enabled: true
+    daemon_reload: yes
+
