@@ -1,0 +1,21 @@
+---
+
+- name: Create persistent state directory
+  ansible.builtin.file:
+    path: "{{ kuma_statedir }}"
+    state: directory
+    owner: kuma
+    group: kuma
+    mode: "0700"
+
+- name: Create dataplanes directory
+  ansible.builtin.file:
+    path: "{{ kuma_confdir }}/dataplanes"
+    state: directory
+    mode: "0755"
+
+- name: Create sysconfig directory
+  ansible.builtin.file:
+    path: /etc/sysconfig
+    state: directory
+    mode: "0755"
