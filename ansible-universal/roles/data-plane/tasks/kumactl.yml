@@ -1,0 +1,14 @@
+---
+
+- name: Add kumactl control plane
+  become: yes
+  become_user: kuma
+  ansible.builtin.command:
+    cmd: "{{ kuma_bindir }}/kumactl config control-planes add --overwrite --name kuma --address http://control-plane:5681"
+
+- name: Set current kumactl control plane
+  become: yes
+  become_user: kuma
+  ansible.builtin.command:
+    cmd: "{{ kuma_bindir }}/kumactl config control-planes switch --name kuma"
+

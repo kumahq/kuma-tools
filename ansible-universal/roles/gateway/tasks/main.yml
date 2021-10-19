@@ -4,7 +4,7 @@
   import_tasks: roles/data-plane/tasks/dirs.yml
 
 - name: Install {{ service_name }} sysconfig
-  notify: restart {{ service_name }} dataplane
+  notify: restart {{ service_name }} gateway
   ansible.builtin.template:
     src: kuma-dp.sysconfig
     dest: /etc/sysconfig/{{ service_name }}-dataplane.conf
