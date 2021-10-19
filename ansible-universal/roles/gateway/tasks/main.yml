@@ -1,25 +1,22 @@
 ---
 
 - name: Ensure system directories
-  import_tasks: dirs.yml
+  import_tasks: roles/data-plane/tasks/dirs.yml
 
-- name: Ensure kumactl configuration
-  import_tasks: kumactl.yml
-
-- name: Install kuma-dp sysconfig
+- name: Install {{ service_name }} sysconfig
   notify: restart {{ service_name }} dataplane
   ansible.builtin.template:
     src: kuma-dp.sysconfig
     dest: /etc/sysconfig/{{ service_name }}-dataplane.conf
 
 - name: Install dataplane resource
-  notify: restart {{ service_name }} dataplane
+  notify: restart {{ service_name }} gateway
   ansible.builtin.template:
     src: dataplane.conf
     dest: "{{ kuma_confdir }}/dataplanes/{{ service_name }}.conf"
 
 - name: Install dataplane service for {{ service_name }}
-  notify: reload {{ service_name}} dataplane
+  notify: reload {{ service_name}} gateway
   ansible.builtin.template:
     src: kuma-dp.service
     dest: /etc/systemd/system/{{ service_name }}-dataplane.service
