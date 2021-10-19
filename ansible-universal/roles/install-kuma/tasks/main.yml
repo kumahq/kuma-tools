@@ -16,7 +16,7 @@
   import_tasks: kuma-binaries.yaml
 
 - name: Configure kumactl
-  import_tasks: kuma-binaries.yaml
+  import_tasks: kumactl.yaml
 
 - name: Install Envoy binaries
   import_tasks: envoy.yaml
