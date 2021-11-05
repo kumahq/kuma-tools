@@ -1,2 +1,4 @@
 # {{ ansible_managed }}.
 # {{ service_name }}-dataplane.service environment variables.
+
+KUMA_LOG_LEVEL=debug

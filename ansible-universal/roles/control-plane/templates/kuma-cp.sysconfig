@@ -1,2 +1,4 @@
 # {{ ansible_managed }}.
 # kuma-cp environment variables.
+
+KUMA_LOG_LEVEL=info

@@ -5,6 +5,9 @@ Description=Kuma Echo Server in Universal mode
 After=network.target
 Documentation=https://kuma.io
 
+[Install]
+WantedBy=multi-user.target
+
 [Service]
 EnvironmentFile=-/etc/sysconfig/echo-server.conf
 
@@ -14,6 +17,3 @@ Restart=always
 RestartSec=1s
 
 User=kuma
-
-[Install]
-WantedBy=multi-user.target
