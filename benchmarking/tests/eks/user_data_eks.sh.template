@@ -1,0 +1,12 @@
+#!/bin/bash -xe
+
+# EKS AMI has a standard bootstrap.sh, which takes parameters to identify and authenticate to EKS deployment. Copy them in here.
+# See also https://github.com/awslabs/amazon-eks-ami/blob/master/files/bootstrap.sh
+#
+# XXX TODO Pull from env and write automatically rather than asking user to fill out template.
+
+EKS_APISERVER_ENDPOINT=
+EKS_B64_CLUSTER_CA=
+EKS_CLUSTER_NAME=
+
+sudo /etc/eks/bootstrap.sh --apiserver-endpoint "$EKS_APISERVER_ENDPOINT"  --b64-cluster-ca "$EKS_B64_CLUSTER_CA"  "$EKS_CLUSTER_NAME"
