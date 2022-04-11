@@ -12,8 +12,9 @@ import (
 )
 
 type service struct {
-	idx   int
-	edges []int
+	idx      int
+	edges    []int
+	replicas int
 }
 
 var srvTemplate = template.Must(template.New("").Parse(`
@@ -27,7 +28,7 @@ metadata:
   labels:
     app: {{.name}}
 spec:
-  replicas: 1
+  replicas: {{.replicas}}
   selector:
     matchLabels:
       app: {{.name}}
@@ -38,6 +39,13 @@ spec:
         app: {{.name}}
       annotations:
         kuma.io/mesh: {{.mesh}}
+        {{- if ne .reachableServices "" }}
+        {{- if eq .reachableServices "none" }}
+        kuma.io/transparent-proxying-reachable-services: ""
+        {{- else }}
+        kuma.io/transparent-proxying-reachable-services: "{{.reachableServices }}"
+        {{- end}}
+        {{- end}}
     spec:
       containers:
         - name: service
@@ -51,8 +59,8 @@ spec:
               value: "{{.uris}}"
           resources:
             limits:
-              memory: "64Mi"
-              cpu: "100m"
+              memory: "32Mi"
+              cpu: "50m"
 ---
 apiVersion: v1
 kind: Service
@@ -62,12 +70,12 @@ metadata:
   namespace: {{.namespace}}
   {{- end}}
   annotations:
-    80.service.kuma.io/protocol: http
 spec:
   selector:
     app: {{.name}}
   ports:
     - protocol: TCP
+      appProtocol: http
       port: 80
       targetPort: 9090
 `)).Option("missingkey=error")
@@ -92,6 +100,9 @@ spec:
         app: "fake-client" 
       annotations:
         kuma.io/mesh: {{.mesh}}
+        {{- if ne .reachableServices "" }}
+        kuma.io/transparent-proxying-reachable-services: "{{.reachableServices }}"
+        {{- end}}
     spec:
       containers:
         - name: client
@@ -112,6 +123,9 @@ spec:
   metrics:
     backends:
     - conf:
+        {{- if .externalPrometheus }}
+        skipMTLS: true
+        {{- end }}
         path: /metrics
         port: 5670
         tags:
@@ -129,40 +143,54 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: {{.namespace}}
-  annotations:
+  labels:
    kuma.io/sidecar-injection: enabled
 `)).Option("missingkey=error")
 
 func toUri(idx int, namespace string) string {
-	return fmt.Sprintf("http://%s_%s_svc_80.mesh:80", toName(idx), namespace)
+	return fmt.Sprintf("http://%s.mesh:80", toKumaService(idx, namespace))
+}
+
+func toKumaService(idx int, namespace string) string {
+	return fmt.Sprintf("%s_%s_svc_80", toName(idx), namespace)
 }
 
 func toName(idx int) string {
 	return fmt.Sprintf("srv-%03d", idx)
 }
 
-func (s service) ToYaml(writer io.Writer, namespace string, mesh string, image string) error {
-	return srvTemplate.Execute(writer, map[string]string{
-		"name":      toName(s.idx),
-		"namespace": namespace,
-		"mesh":      mesh,
-		"uris":      s.toUris(namespace),
-		"image": image,
-	})
-}
+func (s service) ToYaml(writer io.Writer, namespace, mesh, image string, withReachableServices bool) error {
 
-func (s service) toUris(namespace string) string {
-	all := []string{}
-	for _, edge := range s.edges {
-		all = append(all, toUri(edge, namespace))
+	opt := map[string]interface{}{
+		"name":              toName(s.idx),
+		"namespace":         namespace,
+		"mesh":              mesh,
+		"uris":              strings.Join(s.mapEdges(func(i int) string { return toUri(i, namespace) }), ","),
+		"image":             image,
+		"replicas":          s.replicas,
+		"reachableServices": "",
 	}
-	return strings.Join(all, ",")
+	if withReachableServices {
+		if len(s.edges) == 0 {
+			opt["reachableServices"] = "none"
+		} else {
+			opt["reachableServices"] = strings.Join(s.mapEdges(func(i int) string { return toKumaService(i, namespace) }), ",")
+		}
+	}
+	return srvTemplate.Execute(writer, opt)
+}
+func (s service) mapEdges(fn func(int) string) []string {
+	var all []string
+	for _, edge := range s.edges {
+		all = append(all, fn(edge))
+	}
+	return all
 }
 
 type services []service
 
 func (s services) ToDot() string {
-	allEdges := []string{}
+	var allEdges []string
 	for _, srv := range s {
 		for _, other := range srv.edges {
 			allEdges = append(allEdges, fmt.Sprintf("%d -> %d;", srv.idx, other))
@@ -172,11 +200,15 @@ func (s services) ToDot() string {
 }
 
 func (s services) ToYaml(writer io.Writer, conf serviceConf) error {
-	if err := namespaceTemplate.Execute(writer, map[string]string{"namespace": conf.namespace, "mesh": conf.mesh}); err != nil {
+	if err := namespaceTemplate.Execute(writer, map[string]interface{}{"namespace": conf.namespace, "mesh": conf.mesh, "externalPrometheus": conf.withExternalPrometheus}); err != nil {
 		return err
 	}
 	if conf.withGenerator {
-		if err := clientTemplate.Execute(writer, map[string]string{"namespace": conf.namespace, "mesh": conf.mesh, "uri": toUri(0, conf.namespace)}); err != nil {
+		params := map[string]string{"namespace": conf.namespace, "mesh": conf.mesh, "uri": toUri(0, conf.namespace), "reachableServices": ""}
+		if conf.withReachableServices {
+			params["reachableServices"] = toKumaService(0, conf.namespace)
+		}
+		if err := clientTemplate.Execute(writer, params); err != nil {
 			return err
 		}
 	}
@@ -184,7 +216,7 @@ func (s services) ToYaml(writer io.Writer, conf serviceConf) error {
 		if _, err := writer.Write([]byte("---")); err != nil {
 			return err
 		}
-		if err := srv.ToYaml(writer, conf.namespace, conf.mesh, conf.image); err != nil {
+		if err := srv.ToYaml(writer, conf.namespace, conf.mesh, conf.image, conf.withReachableServices); err != nil {
 			return err
 		}
 	}
@@ -192,18 +224,24 @@ func (s services) ToYaml(writer io.Writer, conf serviceConf) error {
 }
 
 type serviceConf struct {
-	withFailure   bool
-	withGenerator bool
-	namespace     string
-	mesh          string
-	image         string
+	withFailure            bool
+	withGenerator          bool
+	withReachableServices  bool
+	namespace              string
+	mesh                   string
+	image                  string
+	withExternalPrometheus bool
 }
 
-func GenerateRandomServiceMesh(seed int64, numServices int, percentEdges int) services {
+func GenerateRandomServiceMesh(seed int64, numServices, percentEdges, minReplicas, maxReplicas int) services {
 	r := rand.New(rand.NewSource(seed))
 	srvs := services{}
 	for i := 0; i < numServices; i++ {
-		srvs = append(srvs, service{idx: i})
+		numInstances := 1
+		if maxReplicas > minReplicas {
+			numInstances = (r.Int() % (1 + maxReplicas - minReplicas)) + minReplicas
+		}
+		srvs = append(srvs, service{idx: i, replicas: numInstances})
 	}
 	// That's the whole story of DAG and topological sort with triangular matrix.
 	for i := 0; i < numServices; i++ {
@@ -214,7 +252,6 @@ func GenerateRandomServiceMesh(seed int64, numServices int, percentEdges int) se
 		}
 	}
 	return srvs
-
 }
 
 func main() {
@@ -223,15 +260,19 @@ func main() {
 	flag.StringVar(&conf.namespace, "namespace", "kuma-test", "The name of the namespace to deploy to")
 	flag.StringVar(&conf.mesh, "mesh", "default", "The name of the mesh to deploy to")
 	flag.StringVar(&conf.image, "image", "nicholasjackson/fake-service:v0.21.1", "The fake-service image")
+	flag.BoolVar(&conf.withReachableServices, "withReachableServices", true, "Whether we should use reachable services or not")
+	flag.BoolVar(&conf.withExternalPrometheus, "withExternalPrometheus", false, "Whether we should use a prometheus inside or outside the mesh")
 	numServices := flag.Int("numServices", 20, "The number of services to use")
+	minReplicas := flag.Int("minReplicas", 1, "The minimum number of replicas to use (will pick a number between min and max)")
+	maxReplicas := flag.Int("maxReplicas", 1, "The max number of replicas to use (will pick a number between min and max)")
 	percentEdge := flag.Int("percentEdge", 50, "The for an edge between 2 nodes to exist (100 == sure)")
 	seed := flag.Int64("seed", time.Now().Unix(), "the seed for the random generate (set to now by default)")
 	flag.Parse()
 
 	fmt.Printf("# Using seed: %d\n", *seed)
-	srvs := GenerateRandomServiceMesh(*seed, *numServices, *percentEdge)
+	srvs := GenerateRandomServiceMesh(*seed, *numServices, *percentEdge, *minReplicas, *maxReplicas)
 	err := srvs.ToYaml(os.Stdout, conf)
 	if err != nil {
-		panic(err)
+		panic(any(err))
 	}
 }
