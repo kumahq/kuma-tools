@@ -1,0 +1,3 @@
+controlPlane:
+  envVars:
+    KUMA_EXPERIMENTAL_KUBE_OUTBOUNDS_AS_VIPS: "true"
