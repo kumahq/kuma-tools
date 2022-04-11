@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 set -ex
 
 MACHINE_TYPE=${MACHINE_TYPE:-n1-standard-16}
