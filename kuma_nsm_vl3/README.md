@@ -9,15 +9,15 @@ For more info about this demo go to: [Demo presentation](https://docs.google.com
 ## Requires
 
 Set KUBECONFIG1 and KUBECONFIG2 to your cluster config paths accordingly.
-- [Load balancer](https://github.com/networkservicemesh/deployments-k8s/blob/23c5e9bd151a2ec204932e8b06190efa07b5df88/examples/interdomain/loadbalancer/README.md)
-- [Interdomain DNS](https://github.com/networkservicemesh/deployments-k8s/blob/23c5e9bd151a2ec204932e8b06190efa07b5df88/examples/interdomain/dns/README.md)
-- [Interdomain spire](https://github.com/networkservicemesh/deployments-k8s/blob/23c5e9bd151a2ec204932e8b06190efa07b5df88/examples/interdomain/spire/README.md)
-- [Interdomain nsm](https://github.com/networkservicemesh/deployments-k8s/blob/23c5e9bd151a2ec204932e8b06190efa07b5df88/examples/interdomain/nsm/README.md)
+- [Load balancer](https://github.com/networkservicemesh/deployments-k8s/tree/release/v1.6.0/examples/interdomain/loadbalancer)
+- [Interdomain DNS](https://github.com/networkservicemesh/deployments-k8s/tree/release/v1.6.0/examples/interdomain/dns)
+- [Interdomain spire](https://github.com/networkservicemesh/deployments-k8s/tree/release/v1.6.0/examples/interdomain/spire)
+- [Interdomain nsm](https://github.com/networkservicemesh/deployments-k8s/tree/release/v1.6.0/examples/interdomain/nsm)
 
 ## Run
 1. Start vl3
 ```bash
-kubectl --kubeconfig=$KUBECONFIG1 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/nsm_kuma_universal_vl3/vl3-dns?ref=23c5e9bd151a2ec204932e8b06190efa07b5df88
+kubectl --kubeconfig=$KUBECONFIG1 apply -k https://github.com/networkservicemesh/deployments-k8s/examples/interdomain/nsm_kuma_universal_vl3/vl3-dns?ref=v1.6.0
 kubectl --kubeconfig=$KUBECONFIG1 -n ns-dns-vl3 wait --for=condition=ready --timeout=2m pod -l app=vl3-ipam
 ```
 
