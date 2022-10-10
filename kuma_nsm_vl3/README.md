@@ -8,6 +8,11 @@ For more info about this demo go to: [Demo presentation](https://docs.google.com
 
 ## Requires
 
+```bash
+export CLUSTER1_CIDR="172.18.1.128/25" 
+export CLUSTER2_CIDR="172.18.2.128/25"
+```
+
 Set KUBECONFIG1 and KUBECONFIG2 to your cluster config paths accordingly.
 - [Load balancer](https://github.com/networkservicemesh/deployments-k8s/tree/release/v1.6.0/examples/interdomain/loadbalancer)
 - [Interdomain DNS](https://github.com/networkservicemesh/deployments-k8s/tree/release/v1.6.0/examples/interdomain/dns)
@@ -25,8 +30,8 @@ kubectl --kubeconfig=$KUBECONFIG1 -n ns-dns-vl3 wait --for=condition=ready --tim
 
 Install kumactl by following [Kuma docs](https://kuma.io/docs/1.7.x/installation/kubernetes/)
 ```bash
-curl -L https://kuma.io/installer.sh | VERSION=1.7.0 ARCH=amd64 bash -
-export PATH=$PWD/kuma-1.7.0/bin:$PATH
+curl -L https://kuma.io/installer.sh | VERSION=1.8.1 ARCH=amd64 bash -
+export PATH=$PWD/kuma-1.8.1/bin:$PATH
 ```
 
 3. Create control-plane configuration
@@ -93,5 +98,5 @@ pkill -f "port-forward"
 kubectl --kubeconfig=$KUBECONFIG1 delete ns kuma-system kuma-demo ns-dns-vl3
 kubectl --kubeconfig=$KUBECONFIG2 delete ns kuma-demo
 rm tls.crt tls.key ca.crt kustomization.yaml control-plane.yaml
-rm -rf kuma-1.7.0
+rm -rf kuma-1.8.1
 ```
