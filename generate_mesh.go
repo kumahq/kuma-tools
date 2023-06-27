@@ -187,9 +187,9 @@ func (s service) mapEdges(fn func(int) string) []string {
 	return all
 }
 
-type services []service
+type Services []service
 
-func (s services) ToDot() string {
+func (s Services) ToDot() string {
 	var allEdges []string
 	for _, srv := range s {
 		for _, other := range srv.edges {
@@ -199,7 +199,7 @@ func (s services) ToDot() string {
 	return fmt.Sprintf("digraph{\n%s\n}\n", strings.Join(allEdges, "\n"))
 }
 
-func (s services) ToYaml(writer io.Writer, conf serviceConf) error {
+func (s Services) ToYaml(writer io.Writer, conf serviceConf) error {
 	if err := namespaceTemplate.Execute(writer, map[string]interface{}{"namespace": conf.namespace, "mesh": conf.mesh, "externalPrometheus": conf.withExternalPrometheus}); err != nil {
 		return err
 	}
@@ -233,9 +233,9 @@ type serviceConf struct {
 	withExternalPrometheus bool
 }
 
-func GenerateRandomServiceMesh(seed int64, numServices, percentEdges, minReplicas, maxReplicas int) services {
+func GenerateRandomServiceMesh(seed int64, numServices, percentEdges, minReplicas, maxReplicas int) Services {
 	r := rand.New(rand.NewSource(seed))
-	srvs := services{}
+	srvs := Services{}
 	for i := 0; i < numServices; i++ {
 		numInstances := 1
 		if maxReplicas > minReplicas {
