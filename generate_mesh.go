@@ -17,7 +17,7 @@ func main() {
 	flag.BoolVar(&conf.WithGenerator, "withGenerator", false, "Whether we should start a job that generates synthetic load to the first service")
 	flag.StringVar(&conf.Namespace, "namespace", "kuma-test", "The name of the namespace to deploy to")
 	flag.StringVar(&conf.Mesh, "mesh", "default", "The name of the mesh to deploy to")
-	flag.StringVar(&conf.Image, "image", "nicholasjackson/fake-service:v0.21.1", "The fake-service image")
+	flag.StringVar(&conf.Image, "image", "nicholasjackson/fake-service:v0.25.2", "The fake-service image")
 	flag.BoolVar(&conf.WithReachableServices, "withReachableServices", true, "Whether we should use reachable services or not")
 	flag.BoolVar(&conf.WithExternalPrometheus, "withExternalPrometheus", false, "Whether we should use a prometheus inside or outside the mesh")
 	numServices := flag.Int("numServices", 20, "The number of services to use")
