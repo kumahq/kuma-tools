@@ -248,7 +248,7 @@ func GenerateRandomServiceMesh(seed int64, numServices, percentEdges, minReplica
 	srvs := Services{}
 	for i := 0; i < numServices; i++ {
 		numInstances := 1
-		if maxReplicas > minReplicas {
+		if maxReplicas >= minReplicas {
 			numInstances = (r.Int() % (1 + maxReplicas - minReplicas)) + minReplicas
 		}
 		srvs = append(srvs, service{idx: i, replicas: numInstances})
