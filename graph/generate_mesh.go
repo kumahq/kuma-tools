@@ -8,10 +8,10 @@ import (
 	"text/template"
 )
 
-type service struct {
-	idx      int
-	edges    []int
-	replicas int
+type Service struct {
+	Idx      int
+	Edges    []int
+	Replicas int
 }
 
 var srvTemplate = template.Must(template.New("").Parse(`
@@ -148,53 +148,53 @@ metadata:
    kuma.io/sidecar-injection: enabled
 `)).Option("missingkey=error")
 
-func toUri(idx int, namespace string) string {
-	return fmt.Sprintf("http://%s.mesh:80", toKumaService(idx, namespace))
+func ToUri(idx int, namespace string) string {
+	return fmt.Sprintf("http://%s.mesh:80", ToKumaService(idx, namespace))
 }
 
-func toKumaService(idx int, namespace string) string {
-	return fmt.Sprintf("%s_%s_svc_80", toName(idx), namespace)
+func ToKumaService(idx int, namespace string) string {
+	return fmt.Sprintf("%s_%s_svc_80", ToName(idx), namespace)
 }
 
-func toName(idx int) string {
+func ToName(idx int) string {
 	return fmt.Sprintf("srv-%03d", idx)
 }
 
-func (s service) ToYaml(writer io.Writer, namespace, mesh, image string, withReachableServices bool) error {
+func (s Service) ToYaml(writer io.Writer, namespace, mesh, image string, withReachableServices bool) error {
 
 	opt := map[string]interface{}{
-		"name":              toName(s.idx),
+		"name":              ToName(s.Idx),
 		"namespace":         namespace,
 		"mesh":              mesh,
-		"uris":              strings.Join(s.mapEdges(func(i int) string { return toUri(i, namespace) }), ","),
+		"uris":              strings.Join(s.mapEdges(func(i int) string { return ToUri(i, namespace) }), ","),
 		"image":             image,
-		"replicas":          s.replicas,
+		"replicas":          s.Replicas,
 		"reachableServices": "",
 	}
 	if withReachableServices {
-		if len(s.edges) == 0 {
+		if len(s.Edges) == 0 {
 			opt["reachableServices"] = "none"
 		} else {
-			opt["reachableServices"] = strings.Join(s.mapEdges(func(i int) string { return toKumaService(i, namespace) }), ",")
+			opt["reachableServices"] = strings.Join(s.mapEdges(func(i int) string { return ToKumaService(i, namespace) }), ",")
 		}
 	}
 	return srvTemplate.Execute(writer, opt)
 }
-func (s service) mapEdges(fn func(int) string) []string {
+func (s Service) mapEdges(fn func(int) string) []string {
 	var all []string
-	for _, edge := range s.edges {
+	for _, edge := range s.Edges {
 		all = append(all, fn(edge))
 	}
 	return all
 }
 
-type Services []service
+type Services []Service
 
 func (s Services) ToDot() string {
 	var allEdges []string
 	for _, srv := range s {
-		for _, other := range srv.edges {
-			allEdges = append(allEdges, fmt.Sprintf("%d -> %d;", srv.idx, other))
+		for _, other := range srv.Edges {
+			allEdges = append(allEdges, fmt.Sprintf("%d -> %d;", srv.Idx, other))
 		}
 	}
 	return fmt.Sprintf("digraph{\n%s\n}\n", strings.Join(allEdges, "\n"))
@@ -212,9 +212,9 @@ func (s Services) ToYaml(writer io.Writer, conf ServiceConf) error {
 		}
 	}
 	if conf.WithGenerator {
-		params := map[string]string{"namespace": conf.Namespace, "mesh": conf.Mesh, "uri": toUri(0, conf.Namespace), "reachableServices": ""}
+		params := map[string]string{"namespace": conf.Namespace, "mesh": conf.Mesh, "uri": ToUri(0, conf.Namespace), "reachableServices": ""}
 		if conf.WithReachableServices {
-			params["reachableServices"] = toKumaService(0, conf.Namespace)
+			params["reachableServices"] = ToKumaService(0, conf.Namespace)
 		}
 		if err := clientTemplate.Execute(writer, params); err != nil {
 			return err
@@ -251,13 +251,13 @@ func GenerateRandomServiceMesh(seed int64, numServices, percentEdges, minReplica
 		if maxReplicas >= minReplicas {
 			numInstances = (r.Int() % (1 + maxReplicas - minReplicas)) + minReplicas
 		}
-		srvs = append(srvs, service{idx: i, replicas: numInstances})
+		srvs = append(srvs, Service{Idx: i, Replicas: numInstances})
 	}
 	// That's the whole story of DAG and topological sort with triangular matrix.
 	for i := 0; i < numServices; i++ {
 		for j := i + 1; j < numServices; j++ {
 			if r.Int()%(j-i) == 0 && r.Int()%100 < percentEdges {
-				srvs[i].edges = append(srvs[i].edges, j)
+				srvs[i].Edges = append(srvs[i].Edges, j)
 			}
 		}
 	}
