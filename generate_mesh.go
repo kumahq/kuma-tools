@@ -25,7 +25,7 @@ func main() {
 	maxReplicas := flag.Int("maxReplicas", 1, "The max number of replicas to use (will pick a number between min and max)")
 	percentEdge := flag.Int("percentEdge", 50, "The for an edge between 2 nodes to exist (100 == sure)")
 	seed := flag.Int64("seed", time.Now().Unix(), "the seed for the random generate (set to now by default)")
-	output := flag.String("output", "yaml", "output (yaml or dot)")
+	output := flag.String("output", "yaml", "output format (yaml,dot,mermaid)")
 	flag.Parse()
 
 	fmt.Printf("# Using seed: %d\n", *seed)
@@ -35,9 +35,11 @@ func main() {
 	case "yaml":
 		err = srvs.ToYaml(os.Stdout, conf)
 	case "dot":
-		_, err = os.Stdout.Write([]byte(srvs.ToDot()))
+		err = srvs.ToDot(os.Stdout)
+	case "mermaid":
+		err = srvs.ToMermaid(os.Stdout)
 	default:
-		err = fmt.Errorf("format '%s' not supported accepted format: yaml, dot", *output)
+		err = fmt.Errorf("format '%s' not supported accepted format: yaml, dot, mermaid", *output)
 	}
 	if err != nil {
 		panic(any(err))

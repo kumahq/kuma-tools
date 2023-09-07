@@ -170,21 +170,33 @@ func (s Service) mapEdges(fn func(int) string) []string {
 
 func (s Service) ToReachableServices(namespace string) string {
 	if len(s.Edges) == 0 {
-		return "none"
+		return "non-existing-service"
 	}
 	return strings.Join(s.mapEdges(func(i int) string { return ToKumaService(i, namespace) }), ",")
 }
 
 type Services []Service
 
-func (s Services) ToDot() string {
+func (s Services) ToDot(writer io.Writer) error {
 	var allEdges []string
 	for _, srv := range s {
 		for _, other := range srv.Edges {
 			allEdges = append(allEdges, fmt.Sprintf("%d -> %d;", srv.Idx, other))
 		}
 	}
-	return fmt.Sprintf("digraph{\n%s\n}\n", strings.Join(allEdges, "\n"))
+	_, err := fmt.Fprintf(writer, "digraph{\n%s\n}\n", strings.Join(allEdges, "\n"))
+	return err
+}
+
+func (s Services) ToMermaid(writer io.Writer) error {
+	var allEdges []string
+	for _, srv := range s {
+		for _, other := range srv.Edges {
+			allEdges = append(allEdges, fmt.Sprintf("\t%d --> %d;", srv.Idx, other))
+		}
+	}
+	_, err := fmt.Fprintf(writer, "graph TD;\n%s\n\n", strings.Join(allEdges, "\n"))
+	return err
 }
 
 func (s Services) ToYaml(writer io.Writer, conf ServiceConf) error {
