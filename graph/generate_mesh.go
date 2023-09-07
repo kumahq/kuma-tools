@@ -37,11 +37,7 @@ spec:
       annotations:
         kuma.io/mesh: {{.mesh}}
         {{- if ne .reachableServices "" }}
-        {{- if eq .reachableServices "none" }}
-        kuma.io/transparent-proxying-reachable-services: ""
-        {{- else }}
         kuma.io/transparent-proxying-reachable-services: "{{.reachableServices }}"
-        {{- end}}
         {{- end}}
     spec:
       containers:
@@ -160,32 +156,23 @@ func ToName(idx int) string {
 	return fmt.Sprintf("srv-%03d", idx)
 }
 
-func (s Service) ToYaml(writer io.Writer, namespace, mesh, image string, withReachableServices bool) error {
-
-	opt := map[string]interface{}{
-		"name":              ToName(s.Idx),
-		"namespace":         namespace,
-		"mesh":              mesh,
-		"uris":              strings.Join(s.mapEdges(func(i int) string { return ToUri(i, namespace) }), ","),
-		"image":             image,
-		"replicas":          s.Replicas,
-		"reachableServices": "",
-	}
-	if withReachableServices {
-		if len(s.Edges) == 0 {
-			opt["reachableServices"] = "none"
-		} else {
-			opt["reachableServices"] = strings.Join(s.mapEdges(func(i int) string { return ToKumaService(i, namespace) }), ",")
-		}
-	}
-	return srvTemplate.Execute(writer, opt)
+func (s Service) Uris(namespace string) string {
+	return strings.Join(s.mapEdges(func(i int) string { return ToUri(i, namespace) }), ",")
 }
+
 func (s Service) mapEdges(fn func(int) string) []string {
 	var all []string
 	for _, edge := range s.Edges {
 		all = append(all, fn(edge))
 	}
 	return all
+}
+
+func (s Service) ToReachableServices(namespace string) string {
+	if len(s.Edges) == 0 {
+		return "none"
+	}
+	return strings.Join(s.mapEdges(func(i int) string { return ToKumaService(i, namespace) }), ",")
 }
 
 type Services []Service
@@ -224,7 +211,19 @@ func (s Services) ToYaml(writer io.Writer, conf ServiceConf) error {
 		if _, err := writer.Write([]byte("---")); err != nil {
 			return err
 		}
-		if err := srv.ToYaml(writer, conf.Namespace, conf.Mesh, conf.Image, conf.WithReachableServices); err != nil {
+		opt := map[string]interface{}{
+			"name":             ToName(srv.Idx),
+			"namespace":        conf.Namespace,
+			"mesh":             conf.Mesh,
+			"uris":             srv.Uris(conf.Namespace),
+			"image":            conf.Image,
+			"replicas":         srv.Replicas,
+			"reachableService": "",
+		}
+		if conf.WithReachableServices {
+			opt["reachableServices"] = srv.ToReachableServices(conf.Namespace)
+		}
+		if err := srvTemplate.Execute(writer, opt); err != nil {
 			return err
 		}
 	}

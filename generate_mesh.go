@@ -25,11 +25,20 @@ func main() {
 	maxReplicas := flag.Int("maxReplicas", 1, "The max number of replicas to use (will pick a number between min and max)")
 	percentEdge := flag.Int("percentEdge", 50, "The for an edge between 2 nodes to exist (100 == sure)")
 	seed := flag.Int64("seed", time.Now().Unix(), "the seed for the random generate (set to now by default)")
+	output := flag.String("output", "yaml", "output (yaml or dot)")
 	flag.Parse()
 
 	fmt.Printf("# Using seed: %d\n", *seed)
 	srvs := graph.GenerateRandomServiceMesh(*seed, *numServices, *percentEdge, *minReplicas, *maxReplicas)
-	err := srvs.ToYaml(os.Stdout, conf)
+	var err error
+	switch *output {
+	case "yaml":
+		err = srvs.ToYaml(os.Stdout, conf)
+	case "dot":
+		_, err = os.Stdout.Write([]byte(srvs.ToDot()))
+	default:
+		err = fmt.Errorf("format '%s' not supported accepted format: yaml, dot", *output)
+	}
 	if err != nil {
 		panic(any(err))
 	}
