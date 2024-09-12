@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
@@ -38,6 +39,9 @@ spec:
         kuma.io/mesh: {{.mesh}}
         {{- if ne .reachableServices "" }}
         kuma.io/transparent-proxying-reachable-services: "{{.reachableServices }}"
+        {{- end}}
+        {{- if ne .reachableBackends "" }}
+        kuma.io/reachable-backends: '{{.reachableBackends }}'
         {{- end}}
     spec:
       containers:
@@ -96,6 +100,9 @@ spec:
         {{- if ne .reachableServices "" }}
         kuma.io/transparent-proxying-reachable-services: "{{.reachableServices }}"
         {{- end}}
+        {{- if ne .reachableBackends "" }}
+        kuma.io/reachable-backends: '{{.reachableBackends }}'
+        {{- end}}
     spec:
       containers:
         - name: client
@@ -114,6 +121,10 @@ kind: Mesh
 metadata:
   name: {{.mesh}}
 spec:
+  {{- if ne .meshServicesMode "" }}
+  meshServices:
+    enabled: {{ .meshServicesMode }}
+  {{- end }}
   metrics:
     backends:
     - conf:
@@ -144,7 +155,10 @@ metadata:
    kuma.io/sidecar-injection: enabled
 `)).Option("missingkey=error")
 
-func ToUri(idx int, namespace string) string {
+func ToUri(idx int, namespace string, kubeURIs bool) string {
+	if kubeURIs {
+		return fmt.Sprintf("http://%s:80", ToName(idx))
+	}
 	return fmt.Sprintf("http://%s.mesh:80", ToKumaService(idx, namespace))
 }
 
@@ -156,8 +170,8 @@ func ToName(idx int) string {
 	return fmt.Sprintf("srv-%03d", idx)
 }
 
-func (s Service) Uris(namespace string) string {
-	return strings.Join(s.mapEdges(func(i int) string { return ToUri(i, namespace) }), ",")
+func (s Service) Uris(namespace string, kubeURIs bool) string {
+	return strings.Join(s.mapEdges(func(i int) string { return ToUri(i, namespace, kubeURIs) }), ",")
 }
 
 func (s Service) mapEdges(fn func(int) string) []string {
@@ -173,6 +187,37 @@ func (s Service) ToReachableServices(namespace string) string {
 		return "non-existing-service"
 	}
 	return strings.Join(s.mapEdges(func(i int) string { return ToKumaService(i, namespace) }), ",")
+}
+
+type ReachableBackendRefs struct {
+	Refs []*ReachableBackendRef `json:"refs,omitempty"`
+}
+
+type ReachableBackendRef struct {
+	Kind      string            `json:"kind,omitempty"`
+	Name      *string           `json:"name,omitempty"`
+	Namespace *string           `json:"namespace,omitempty"`
+	Port      *uint32           `json:"port,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
+}
+
+func (s Service) ToReachableBackends(namespace string) (string, error) {
+	names := s.mapEdges(func(i int) string { return ToName(i) })
+	refs := ReachableBackendRefs{}
+	for _, name := range names {
+		refs.Refs = append(refs.Refs, &ReachableBackendRef{
+			Kind:      "MeshService",
+			Name:      &name,
+			Namespace: &namespace,
+		})
+	}
+
+	refsAnnotationValue, err := json.Marshal(refs)
+	if err != nil {
+		return "", err
+	}
+
+	return string(refsAnnotationValue), nil
 }
 
 type Services []Service
@@ -206,14 +251,21 @@ func (s Services) ToYaml(writer io.Writer, conf ServiceConf) error {
 		}
 	}
 	if conf.WithMesh {
-		if err := meshTemplate.Execute(writer, map[string]interface{}{"mesh": conf.Mesh, "externalPrometheus": conf.WithExternalPrometheus}); err != nil {
+		if err := meshTemplate.Execute(writer, map[string]interface{}{
+			"mesh":               conf.Mesh,
+			"externalPrometheus": conf.WithExternalPrometheus,
+			"meshServicesMode":   conf.MeshServicesMode,
+		}); err != nil {
 			return err
 		}
 	}
 	if conf.WithGenerator {
-		params := map[string]string{"namespace": conf.Namespace, "mesh": conf.Mesh, "uri": ToUri(0, conf.Namespace), "reachableServices": ""}
+		params := map[string]string{"namespace": conf.Namespace, "mesh": conf.Mesh, "uri": ToUri(0, conf.Namespace, conf.WithKubeURIs), "reachableServices": "", "reachableBackends": ""}
 		if conf.WithReachableServices {
 			params["reachableServices"] = ToKumaService(0, conf.Namespace)
+		}
+		if conf.WithReachableBackends {
+			params["reachableBackends"] = `{"refs":[{"kind":"MeshService","name":"srv-000","namespace":"` + conf.Namespace + `"}]}`
 		}
 		if err := clientTemplate.Execute(writer, params); err != nil {
 			return err
@@ -224,16 +276,24 @@ func (s Services) ToYaml(writer io.Writer, conf ServiceConf) error {
 			return err
 		}
 		opt := map[string]interface{}{
-			"name":             ToName(srv.Idx),
-			"namespace":        conf.Namespace,
-			"mesh":             conf.Mesh,
-			"uris":             srv.Uris(conf.Namespace),
-			"image":            conf.Image,
-			"replicas":         srv.Replicas,
-			"reachableService": "",
+			"name":              ToName(srv.Idx),
+			"namespace":         conf.Namespace,
+			"mesh":              conf.Mesh,
+			"uris":              srv.Uris(conf.Namespace, conf.WithKubeURIs),
+			"image":             conf.Image,
+			"replicas":          srv.Replicas,
+			"reachableServices": "",
+			"reachableBackends": "",
 		}
 		if conf.WithReachableServices {
 			opt["reachableServices"] = srv.ToReachableServices(conf.Namespace)
+		}
+		if conf.WithReachableBackends {
+			reachableBackends, err := srv.ToReachableBackends(conf.Namespace)
+			if err != nil {
+				return err
+			}
+			opt["reachableBackends"] = reachableBackends
 		}
 		if err := srvTemplate.Execute(writer, opt); err != nil {
 			return err
@@ -246,12 +306,15 @@ type ServiceConf struct {
 	WithFailure            bool
 	WithGenerator          bool
 	WithReachableServices  bool
+	WithReachableBackends  bool
 	WithNamespace          bool
 	WithMesh               bool
 	Namespace              string
 	Mesh                   string
 	Image                  string
 	WithExternalPrometheus bool
+	WithKubeURIs           bool
+	MeshServicesMode       string
 }
 
 func GenerateRandomServiceMesh(seed int64, numServices, percentEdges, minReplicas, maxReplicas int) Services {
