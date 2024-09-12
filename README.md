@@ -16,3 +16,8 @@ Here's an example that create 20 services:
 ```shell
 go run generate_mesh.go -numServices 20 -percentEdge 33 -withGenerator -namespace kuma-test | kubectl apply -f -
 ```
+
+If you want to use it with new MeshServices:
+```shell
+go run generate_mesh.go -numServices 10 -percentEdge 33 -withGenerator -namespace kuma-test -withKubeURIs -withReachableServices=false -withReachableBackends -meshServicesMode=Exclusive | kubectl apply -f -
+```
