@@ -205,9 +205,10 @@ func (s Service) ToReachableBackends(namespace string) (string, error) {
 	names := s.mapEdges(func(i int) string { return ToName(i) })
 	refs := ReachableBackendRefs{}
 	for _, name := range names {
+		currentName := name
 		refs.Refs = append(refs.Refs, &ReachableBackendRef{
 			Kind:      "MeshService",
-			Name:      &name,
+			Name:      &currentName,
 			Namespace: &namespace,
 		})
 	}
